@@ -1,5 +1,7 @@
 # Spectre
 
+<img src='https://spectreattack.com/images/spectre.min.svg' width='150' height='150'>
+
 Spectre describes a family of vulnerabilities that arise due to problems with [speculative execution](https://en.wikipedia.org/wiki/Speculative_execution) in modern processors.
 
 This repository functions as distillation of the original [paper](https://spectreattack.com/spectre.pdf) that describes the attacks, as well a source of relevant surrounding information
