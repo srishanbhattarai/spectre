@@ -12,8 +12,10 @@ about how modern processors are implemented, eventually leading up to the Spectr
 - [Side Channel Attacks](#side-channel-attacks)
 - [Return Oriented Programming](#return-oriented-programming)
 - [Transient Instructions](#transient-instructions)
-- [Anatomy of a Spectre attack](#side-channel-attacks)
-- [Cache Lines](#cache-lines)
+- [Anatomy of a Spectre attack](#anatomy-of-a-spectre-attack)
+- [Variant 1: Conditional Branch Misprediction](#variant-1-conditional-branch-misprediction)
+- [Variant 2: Branch Target Injection](#variant-2-branch-target-injection)
+- [Meltdown](#meltdown)
 
 # Speculative Execution
 
@@ -88,10 +90,33 @@ Two questions arise:
   - Enter Spectre variants
 
 # Variant 1: Conditional Branch Misprediction
-TODO
+The following steps lead to Spectre Variant 1, which can leak secret data from within the process.
+- Mispredict a branch, causing some piece of code to be speculatively executed
+- Speculatively executed code causes a cache line fetch
+- CPU realizes misprediction, but cache data has already leaked
 
-# Variant 2: Poisoning Indirect Branching
-TODO
+## Example
+![Variant 1](images/variant-1-example.png)
+
+A mispredicted bounds check on `array1[x]` causes secret data to be fetched, which is then indexed onto `array2`. Each element in `array1` maps to at least an entire cache line on `array2`. Therefore, `array2[ 03 << 12 ]` is cached. This can be found out by a timing attack on the attacker's part and data can then be read using a side-channel attack like Flush+Reload or Evict+Reload. Attacker can repeat this for each byte to get the full secret.
+
+# Variant 2: Branch Target Injection
+
+![Variant 2](images/variant-2-example.png)
+
+A slightly subtle but powerful variation from Variant 1, is that mispredicted indirect jumps can be exploited as well. An indirect jump is a jump operation to the value pointed to by a memory address i.e. it requires a memory dereference. The branch predictor uses virtual addresses to store history of previous such branches, and hence can be trained to mispredict. For example, the branch predictor does not know how to distinguish between statistics from a `jmp *eax*` from the attacker process vs. the victim process.
+
+The attacker identifies a `gadget` in the victim code, which is a piece of code when executed will leak data onto a register or cache. For example, a simple XOR operation with attacker controlled registers can leak information. This requires the attacker to have some knowledge of the binary. With several shared libraries (DLLs) being linked to each binary, gadgets are easy to come by.
+
+A summary of the above attack is as follows:
+- **Poison** branch predictor/BTB so speculative execution will go to “gadget”
+- **Evict** from the cache or do other setup to encourage speculative execution
+- **Execute** victim so it runs gadget speculatively
+- **Read** sensitive data from covert channel (e.g. Evict+Reload)
+- **Repeat**
 
 # Meltdown
 TODO
+
+# License
+MIT
